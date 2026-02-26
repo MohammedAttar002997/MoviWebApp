@@ -1,45 +1,46 @@
 {% extends "base.html" %}
 
-{% block title %}{{ user.username }}'s Movies{% endblock %}
-
 {% block content %}
-    <div class="header-actions">
-        <h1>🎥 {{ user.username }}'s Collection</h1>
-        <a href="{{ url_for('home') }}" class="back-link">← Back to Users</a>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2 text-white">{{ user.username }}'s Library</h1>
+    <div class="col-md-4">
+        <input type="text" id="movieSearch" class="form-control bg-dark text-white border-secondary" placeholder="🔍 Filter your collection...">
     </div>
+</div>
 
-    <div class="movie-grid">
-        {% for movie in movies %}
-            <div class="movie-card">
-                <img src="{{ movie.poster }}" alt="{{ movie.name }} poster" class="movie-poster">
-                <div class="movie-info">
-                    <h3>{{ movie.name }}</h3>
-                    <p><strong>Director:</strong> {{ movie.director }}</p>
-                    <p><strong>Year:</strong> {{ movie.year }}</p>
-                </div>
-                <a href="{{ url_for('update_movie', user_id=user.id, movie_id=movie.id) }}" class="btn-edit">
-            Edit Title
-        </a>
-                <div class="card-actions">
-                    <form action="{{ url_for('delete_movie', user_id=user.id, movie_id=movie.id) }}" method="POST">
-                        <button type="submit" class="btn-delete" onclick="return confirm('Delete this movie?')">Delete</button>
-                    </form>
-                </div>
+<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4" id="movieGrid">
+    {% for movie in movies %}
+    <div class="col movie-card-container">
+        <div class="card h-100 shadow-sm">
+            <img src="{{ movie.poster }}" class="card-img-top" alt="poster" style="aspect-ratio: 2/3; object-fit: cover;">
+            <div class="card-body">
+                <h5 class="card-title text-truncate movie-title">{{ movie.name }}</h5>
+                <p class="card-text text-secondary small">{{ movie.year }} • {{ movie.director }}</p>
             </div>
-        {% else %}
-            <div class="empty-state">
-                <p>This library is empty. Start adding some favorites!</p>
+            <div class="card-footer bg-transparent border-top-0 d-flex gap-2">
+                <a href="{{ url_for('update_movie', user_id=user.id, movie_id=movie.id) }}" class="btn btn-sm btn-outline-info w-100">Edit</a>
+                <form action="{{ url_for('delete_movie', user_id=user.id, movie_id=movie.id) }}" method="POST" class="w-100">
+                    <button type="submit" class="btn btn-sm btn-outline-danger w-100" onclick="return confirm('Delete?')">Delete</button>
+                </form>
             </div>
-        {% endfor %}
+        </div>
     </div>
+    {% endfor %}
+</div>
 
-    <hr>
+<script>
+    document.getElementById('movieSearch').addEventListener('keyup', function() {
+        let filter = this.value.toLowerCase();
+        let cards = document.querySelectorAll('.movie-card-container');
 
-    <div class="add-section">
-        <h3>Add a Movie to {{ user.username }}'s List</h3>
-        <form action="{{ url_for('add_movie', user_id=user.id) }}" method="POST">
-            <input type="text" name="title" placeholder="Search for a movie title (API)..." required>
-            <button type="submit">Search & Add</button>
-        </form>
-    </div>
+        cards.forEach(card => {
+            let title = card.querySelector('.movie-title').textContent.toLowerCase();
+            if (title.includes(filter)) {
+                card.style.display = ""; // Show
+            } else {
+                card.style.display = "none"; // Hide
+            }
+        });
+    });
+</script>
 {% endblock %}
