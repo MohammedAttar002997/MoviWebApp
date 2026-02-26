@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}All Users{% endblock %}
+
+{% block content %}
+    <h1>🎬 Movie Library Users</h1>
+
+<div class="user-grid">
+    {% for user in users %}
+    <div class="user-item">
+        <div>
+            <a href="{{ url_for('show_movies', user_id=user.id) }}" class="user-link">
+                {{ user.username }}
+            </a>
+            <p style="color: var(--text-dim); margin: 5px 0 0 0;">{{ user.users.count() }} Movies Saved</p>
+        </div>
+        <span class="badge">Active</span>
+    </div>
+    {% endfor %}
+</div>
+
+    <div class="add-section">
+        <h3>Add a New User</h3>
+        <form action="{{ url_for('add_user') }}" method="POST">
+            <input type="text" name="name" placeholder="Enter username..." required>
+            <button type="submit">Add User</button>
+        </form>
+    </div>
+{% endblock %}

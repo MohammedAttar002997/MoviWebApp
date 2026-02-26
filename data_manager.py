@@ -16,7 +16,7 @@ class DataManager:
         return User.query.get(user_id)
 
 
-    def get_user(self):
+    def get_users(self):
         return User.query.all()
 
 

@@ -1,6 +1,6 @@
 from data_manager import DataManager
 from dotenv import load_dotenv
-from flask import Flask, request, flash, redirect, url_for
+from flask import Flask, request, flash, redirect, url_for, render_template
 from models import db, Movie
 import os
 import requests
@@ -26,23 +26,62 @@ MOVIES_URL = f"https://www.omdbapi.com/?apikey={MOVIES_API_KEY}&t="
 
 @app.route('/')
 def home():
-    return "Welcome to MoviWeb App!"
+    users = data_manager.get_users()
+    return render_template('index.html', users=users)
 
 
 @app.route('/users')
 def list_users():
-    users = data_manager.get_user()
+    users = data_manager.get_users()
     return str(users)  # Temporarily returning users as a string
 
 
 @app.route('/users', methods=['POST'])
 def add_user():
-    pass
+    """
+    Handles the creation of a new user via the home page form.
+    """
+    # 1. Get the name from the form input (name="name" in your HTML)
+    username = request.form.get('name')
+
+    # 2. Basic Validation
+    if not username or username.strip() == "":
+        flash("Username cannot be empty!", "danger")
+        return redirect(url_for('home'))
+
+    try:
+        # 4. Use DataManager to create the user
+        data_manager.create_user(username.strip())
+
+        flash(f"User '{username}' created successfully!", "success")
+
+    except Exception as e:
+        # Handle database errors (like a duplicate username if you set it to UNIQUE)
+        flash(f"An error occurred: {str(e)}", "danger")
+
+    # 5. Redirect back to the index page to show the updated list
+    return redirect(url_for('home'))
 
 
 @app.route('/users/<int:user_id>/movies', methods=['GET'])
 def show_movies(user_id):
-    pass
+    """
+    Fetches a specific user and all their associated movies to display on their profile.
+    """
+    # 1. Use DataManager to find the user
+    user = data_manager.get_user_by_id(user_id)
+
+    if not user:
+        flash("User not found!", "danger")
+        return redirect(url_for('home'))
+
+    # 2. Get the movies (using the dynamic relationship)
+    # This executes the query and returns the list of movies
+    movies = user.users.all()
+
+    # 3. Render the specific user's movie page
+    return render_template('movies.html', user=user, movies=movies)
+
 
 
 @app.route('/users/<int:user_id>/movies', methods=['POST'])
@@ -55,7 +94,7 @@ def add_movie(user_id):
 
     if not movie_title:
         flash("Please enter a movie title.", "warning")
-        return redirect(url_for('get_user_movies', user_id=user_id))
+        return redirect(url_for('show_movies', user_id=user_id))
 
     try:
         # 2. Call the OMDb API (using the variables you defined earlier)
@@ -67,7 +106,7 @@ def add_movie(user_id):
         # 3. Check if the movie was actually found by the API
         if movie_data.get("Response") == "False":
             flash(f"Error from API: {movie_data.get('Error')}", "danger")
-            return redirect(url_for('get_user_movies', user_id=user_id))
+            return redirect(url_for('show_movies', user_id=user_id))
 
         # 4. Use DataManager to save the enriched data
         # We pull the specific fields OMDb provides (Title, Year, Director, Poster)
@@ -87,17 +126,70 @@ def add_movie(user_id):
     except Exception as e:
         flash(f"An unexpected error occurred: {str(e)}", "danger")
 
-    return redirect(url_for('get_user_movies', user_id=user_id))
+    return redirect(url_for('show_movies', user_id=user_id))
 
 
-@app.route('/users/<int:user_id>/movies/<int:movie_id>/update', methods=['POST'])
-def update_movie(user_id,movie_id):
-    pass
+@app.route('/users/<int:user_id>/update_movie/<int:movie_id>', methods=['GET', 'POST'])
+def update_movie(user_id, movie_id):
+    """
+    Handles updating ONLY the movie title for a specific movie.
+    """
+    # 1. Fetch the movie object from the DB
+    movie = Movie.query.get(movie_id)
 
+    if not movie:
+        flash("Movie not found!", "danger")
+        return redirect(url_for('show_movies', user_id=user_id))
+
+    if request.method == 'POST':
+        # 2. Get the new title from the form
+        new_title = request.form.get('title')
+
+        if new_title:
+            # 3. Call your DataManager method
+            # We pass the 'movie' object and the 'new_title' string as your method requires
+            success = data_manager.update_movie(movie, new_title)
+
+            if success:
+                # Also updating 'movie.title' in case your DataManager only touched 'movie.name'
+                movie.title = new_title
+                db.session.commit()
+                flash(f"Movie title updated to '{new_title}'!", "success")
+            else:
+                flash("Update failed.", "danger")
+        else:
+            flash("Title cannot be empty!", "warning")
+
+        return redirect(url_for('show_movies', user_id=user_id))
+
+    # 4. GET request: Show the simple edit form
+    return render_template('update_movie.html', user_id=user_id, movie=movie)
 
 @app.route('/users/<int:user_id>/movies/<int:movie_id>/delete', methods=['POST'])
-def delete_movie(user_id,movie_id):
-    pass
+def delete_movie(user_id, movie_id):
+    """
+    Deletes a specific movie from a user's collection.
+    """
+    try:
+        # 1. Use DataManager to perform the deletion
+        # If you implemented the 'Scoped Security' version, use that here:
+        success = data_manager.delete_movie(movie_id)
+
+        if success:
+            flash("Movie was successfully removed from your collection.", "success")
+        else:
+            flash("Error: Movie not found or could not be deleted.", "danger")
+
+    except Exception as e:
+        flash(f"An unexpected error occurred: {str(e)}", "danger")
+
+    # 2. Redirect back to the user's movie list page
+    return redirect(url_for('show_movies', user_id=user_id))
+
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
 
 
 if __name__ == '__main__':

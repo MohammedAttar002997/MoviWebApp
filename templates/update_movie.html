@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Rename {{ movie.title }}{% endblock %}
+
+{% block content %}
+    <h1>Edit Movie Title</h1>
+    
+    <div class="add-section">
+        <p>Current Title: <strong>{{ movie.title }}</strong></p>
+        
+        <form method="POST">
+            <div class="form-group">
+                <label for="title">New Title:</label>
+                <input type="text" id="title" name="title" value="{{ movie.title }}" required autofocus>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <button type="submit">Update Title</button>
+                <a href="{{ url_for('show_movies', user_id=user_id) }}" style="margin-left: 15px; color: #888;">Cancel</a>
+            </div>
+        </form>
+    </div>
+{% endblock %}
