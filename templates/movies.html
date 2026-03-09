@@ -8,6 +8,22 @@
     </div>
 </div>
 
+<!-- Add Movie Form Section -->
+<div class="card bg-dark border-secondary mb-5 shadow">
+    <div class="card-body">
+        <h5 class="card-title text-white mb-3">Add a New Movie</h5>
+        <form action="{{ url_for('add_movie', user_id=user.id) }}" method="POST" class="row g-3">
+            <div class="col-md-9">
+                <input type="text" name="title" class="form-control bg-dark text-white border-secondary" placeholder="Enter movie title (e.g., Inception, The Matrix)" required>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100">Add Movie</button>
+            </div>
+        </form>
+        <small class="text-secondary mt-2 d-block">We'll fetch the details (year, director, poster) automatically from OMDb!</small>
+    </div>
+</div>
+
 <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4" id="movieGrid">
     {% for movie in movies %}
     <div class="col movie-card-container">
